@@ -1,0 +1,4 @@
+[submodule "oravirt/ansible-oracle"]
+	path = ansible/oravirt/ansible-oracle
+	url = git@github.com:kikitux/ansible-oracle.git
+	branch = master

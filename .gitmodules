@@ -2,3 +2,7 @@
 	path = ansible/oravirt/ansible-oracle
 	url = git@github.com:kikitux/ansible-oracle.git
 	branch = master
+[submodule "kikitux/packer-oraclelinux"]
+	path = packer/kikitux/packer-oraclelinux
+	url = git@github.com:kikitux/packer-oraclelinux.git
+	branch = master

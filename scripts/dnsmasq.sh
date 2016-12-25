@@ -12,11 +12,14 @@ if [ ! "${domain}" ]; then
   domain=racattack
 fi
 
-grep 'addn-hosts=/vagrant/hosts.domain' /etc/dnsmasq.conf || {
-  echo 'addn-hosts=/vagrant/hosts.domain' | tee -a /etc/dnsmasq.conf 
-}
+for param in "addn-hosts=/vagrant/hosts.${domain}" "server=/${prefixdc}.${domain}/192.168.${lan}.244" "interface=lo" "bind-interfaces" "listen-address=127.0.0.1"
+do
+  grep "${param}" /etc/dnsmasq.conf || {
+    echo "${param}" | tee -a /etc/dnsmasq.conf
+  }
+done
 
-cat > /vagrant/hosts.domain <<EOF
+cat > /vagrant/hosts.${domain} <<EOF
 192.168.${lan}.251 ${prefixdc}-scan.${domain} ${prefixdc}-scan
 192.168.${lan}.252 ${prefixdc}-scan.${domain} ${prefixdc}-scan
 192.168.${lan}.253 ${prefixdc}-scan.${domain} ${prefixdc}-scan

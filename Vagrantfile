@@ -12,12 +12,13 @@ domain = "domain"
 
 # array of dc names
 dc = ["prd"]
+#dc = ["prd","dev"]
 #dc = ["prd","stb","dev"]
 
 # define number of nodes
 num_APPLICATION       = 0
-num_LEAF_INSTANCES    = 0
-num_DB_INSTANCES      = 1
+num_LEAF_INSTANCES    = 1
+num_DB_INSTANCES      = 2
 
 #define number of cores for guest
 num_CORE              = 2
@@ -134,8 +135,8 @@ give_info ||=true
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.ssh.insert_key = false
-  config.vm.box = "kikitux/oracle6-racattack"
-  #config.vm.box = "ol6"
+  #config.vm.box = "kikitux/oracle6-racattack"
+  config.vm.box = "ol6"
 
   if File.directory?("ansible")
     # our shared folder for ansible roles
@@ -172,15 +173,18 @@ echo "overwriting /etc/resolv.conf"
 cat > /etc/resolv.conf <<EOF
 options attempts: 2
 options timeout: 1
-nameserver 192.168.#{78+dci}.51
-nameserver 192.168.#{78+dci}.52
+nameserver 192.168.#{78+dci}.244
+nameserver 127.0.0.1
+#nameserver 192.168.#{78+dci}.51
+#nameserver 192.168.#{78+dci}.52
 nameserver 10.0.2.3
-search #{domain} #{prefixdc}.#{domain}
+search #{prefixdc}.#{domain} #{domain}
 EOF
 
 cat > /etc/hosts << EOF
-127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-::1         localhost6 localhost6.localdomain6
+127.0.0.1      localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1            localhost6 localhost6.localdomain6
+192.168.#{78+dci}.244 #{prefixdc}-cluster-gns.#{domain} #{prefixdc}-cluster-gns
 EOF
 
 sysctl -w kernel.domainname=#{domain}
@@ -213,12 +217,12 @@ SCRIPT
         vb.customize ["modifyvm", :id, "--cpus", num_CORE]
         vb.customize ["modifyvm", :id, "--groups", "/#{prefix}"]
 
-        if vm_name.start_with?("#{prefix}n")
+        if vm_name.start_with?("#{prefixdc}n")
           #first shared disk port
           port=2
           #iterate over shared disk
           (1..count_shared_disk).each do |disk|
-            file_to_dbdisk = "#{prefix}-#{dc}-shared-disk"
+            file_to_dbdisk = "#{prefixdc}-shared-disk"
             if !File.exist?("#{file_to_dbdisk}#{disk}.vdi") and num_DB_INSTANCES==i
               unless give_info==false
                 puts "on first boot shared disks will be created, this will take some time"

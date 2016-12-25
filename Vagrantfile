@@ -11,9 +11,9 @@ prefix = "prefix"
 domain = "domain"
 
 #define number of nodes
-num_APPLICATION       = 2
-num_LEAF_INSTANCES    = 3
-num_DB_INSTANCES      = 4
+num_APPLICATION       = 1
+num_LEAF_INSTANCES    = 1
+num_DB_INSTANCES      = 2
 #
 #define number of cores for guest
 num_CORE              = 2
@@ -127,7 +127,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.synced_folder "scripts", "/media/scripts", :mount_options => ["dmode=555","fmode=444","gid=54321"]
     #clean all
     if ENV['setup'] == "clean"
-      config.vm.provision :shell, :inline => "sh /media/scripts/clean.sh YES"
+      config.vm.provision :shell, :path => "scripts/clean.sh", :args => "YES"
     else
       #run some scripts
       config.vm.provision :shell, :inline => $etc_hosts_script
@@ -140,8 +140,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   ## IMPORTANT
-  ## vagrant work up to down, high node goes first
-  ## so when node 1 is ready, we can configure rac and all nodes will be up
+  ## vagrant works top to bottom.
+  ## We reverse the oder, so higher node goes first
+  ## when db node 1 is ready, we can configure rac as all nodes will be up
 
   ## Create hash table of all nodes
   ## key -> [value[0],value[1],value[2]]
@@ -150,32 +151,33 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   nodes = {}
 
   (1..num_APPLICATION).each do |i|
-    nodes["#{prefix}a%01d" % i] = [num_APPLICATION+1-i,"192.168.78.#{i+90}"]
+    i=num_APPLICATION+1-i
+    nodes["#{prefix}a%01d" % i] = [i,"192.168.78.#{i+90}"]
   end
 
   (1..num_LEAF_INSTANCES).each do |i|
-    nodes["#{prefix}l%01d" % i] = [num_LEAF_INSTANCES+1-i,"192.168.78.#{i+70}","172.16.100.#{i+70}"]
+    i=num_LEAF_INSTANCES+1-i
+    nodes["#{prefix}l%01d" % i] = [i,"192.168.78.#{i+70}","172.16.100.#{i+70}"]
   end
 
   (1..num_DB_INSTANCES).each do |i|
-    nodes["#{prefix}n%01d" % i] = [num_DB_INSTANCES+1-i,"192.168.78.#{i+50}","172.16.100.#{i+50}"]
+    i=num_DB_INSTANCES+1-i
+    nodes["#{prefix}n%01d" % i] = [i,"192.168.78.#{i+50}","172.16.100.#{i+50}"]
   end
 
   # Lets iterate over the nodes
   nodes.each do |vm_name,array|
 
-  i=array[0]
+    i      = array[0]
+    lanip  = array[1]
+    privip = array[2] unless array[2].nil?
+
+    puts vm_name + " eth1 lanip : " + lanip
 
     config.vm.define vm_name = vm_name do |config|
       config.vm.hostname = "#{vm_name}.#{domain}"
-
-      lanip  = array[1]
-      puts vm_name + " eth1 lanip  :" + lanip
       config.vm.network :private_network, ip: lanip
-
-      privip = array[2] unless array[2].nil?
-      config.vm.network :private_network, ip: privip unless array[2].nil?
-
+      config.vm.network :private_network, ip: privip unless privip.nil?
       config.vm.provider :virtualbox do |vb|
         vb.name = vm_name + "." + Time.now.strftime("%y%m%d%H%M")
         vb.customize ["modifyvm", :id, "--paravirtprovider", "kvm" ]
@@ -188,7 +190,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         if vm_name.start_with?("#{prefix}n")
           #first shared disk port
           port=2
-          #how many shared disk
+          #iterate over shared disk
           (1..count_shared_disk).each do |disk|
             file_to_dbdisk = "#{prefix}-shared-disk"
             if !File.exist?("#{file_to_dbdisk}#{disk}.vdi") and num_DB_INSTANCES==i
@@ -207,8 +209,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
   end
-
-
 
 #      if not ENV['setup'] == "clean"
 #        if vm_name == "#{prefix}n2" 

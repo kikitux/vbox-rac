@@ -241,7 +241,7 @@ SCRIPT
           port=2
           #iterate over shared disk
           (1..6).each do |disk|
-            file_to_dbdisk = "#{dcprefix}-shared-disk"
+            file_to_dbdisk = "#{dcprefix}-#{domain}-shared-disk"
             if !File.exist?("#{file_to_dbdisk}#{disk}.vdi") and num_DB_INSTANCES==i
               unless give_info==false
                 puts "on first boot shared disks will be created, this will take some time"

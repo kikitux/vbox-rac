@@ -52,6 +52,7 @@ size_shared_disk      = 50
 #if not defined, set defaults
 ENV['giver']||="12.1.0.2"
 ENV['dbver']||="12.1.0.2"
+dca||= ["prd"]
 
 #this will give us version in format of 12102
 giver_i = ENV['giver'].gsub('.','').to_i
@@ -146,10 +147,10 @@ give_info ||=true
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.ssh.insert_key = false
+  #config.vm.box = "vbox-rac"
+  #config.vm.box_url = "packer/kikitux/packer-oraclelinux/ol6/vbox-rac.box"
   #config.vm.box = "alvaro/vbox-rac"
-  #config.vm.box = "kikitux/vbox-rac"
-  config.vm.box = "vbox-rac"
-  config.vm.box_url = "packer/kikitux/packer-oraclelinux/ol6/vbox-rac.box"
+  config.vm.box = "kikitux/vbox-rac"
 
   if File.directory?("ansible")
     # our shared folder for ansible roles

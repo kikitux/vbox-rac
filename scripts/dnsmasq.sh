@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 
-echo ${domain} ${lan} ${priv} ${dcprefix} ${dca} ${prefix}
-exit
-
+#echo ${domain} ${dca} ${prefix}
 
 p="dnsmasq"
 rpm -q ${p} &>/dev/null || {
@@ -10,18 +8,29 @@ rpm -q ${p} &>/dev/null || {
 }
 
 
-if [ ! "${domain}" ]; then
-  domain=racattack
-fi
+lan=78
+priv=100
 
-for param in "addn-hosts=/vagrant/hosts.${domain}" "server=/${dcprefix}.${domain}/192.168.${lan}.244" "interface=lo" "bind-interfaces" "listen-address=127.0.0.1"
+# clean hosts
+[ "${HOSTNAME%%.*}" == "${first}" ] && > /vagrant/hosts
+
+> /etc/dnsmasq.conf
+for param in "addn-hosts=/vagrant/hosts" "interface=lo" "bind-interfaces" "listen-address=127.0.0.1"
 do
-  grep "^${param}" /etc/dnsmasq.conf || {
+  grep "^${param}$" /etc/dnsmasq.conf || {
     echo "${param}" | tee -a /etc/dnsmasq.conf
   }
 done
 
-cat > /vagrant/hosts.${domain} <<EOF
+for dc in ${dca}; do
+  dcprefix=${dc}${prefix}
+
+  param="server=/${dcprefix}.${domain}/192.168.${lan}.244"
+  grep "^${param}$" /etc/dnsmasq.conf || {
+    echo "${param}" | tee -a /etc/dnsmasq.conf
+  }
+
+[ "${HOSTNAME%%.*}" == "${first}" ] && cat >> /vagrant/hosts <<EOF
 192.168.${lan}.51 ${dcprefix}n1.${domain} ${dcprefix}n1
 172.16.${priv}.51 ${dcprefix}n1-priv.${domain} ${dcprefix}n1-priv
 192.168.${lan}.61 ${dcprefix}n1-vip.${domain} ${dcprefix}n1-vip
@@ -86,14 +95,12 @@ cat > /vagrant/hosts.${domain} <<EOF
 192.168.${lan}.98 ${dcprefix}a8.${domain} ${dcprefix}a8
 192.168.${lan}.99 ${dcprefix}a9.${domain} ${dcprefix}a9
 192.168.${lan}.244 ${dcprefix}-cluster-gns.${domain} ${dcprefix}-cluster-gns
+192.168.${lan}.251 ${dcprefix}-scan.${domain} ${dcprefix}-scan
+192.168.${lan}.252 ${dcprefix}-scan.${domain} ${dcprefix}-scan
+192.168.${lan}.253 ${dcprefix}-scan.${domain} ${dcprefix}-scan
 EOF
-
-dci=78
-for dc in ${dca}; do
-  echo 192.168.${dci}.251 ${dc}${prefix}-scan.${domain} ${dc}${prefix}-scan >> /vagrant/hosts.${domain}
-  echo 192.168.${dci}.252 ${dc}${prefix}-scan.${domain} ${dc}${prefix}-scan >> /vagrant/hosts.${domain}
-  echo 192.168.${dci}.253 ${dc}${prefix}-scan.${domain} ${dc}${prefix}-scan >> /vagrant/hosts.${domain}
-  let dci++
+  let lan++
+  let priv++
 done
 
 chkconfig dnsmasq on

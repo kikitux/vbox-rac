@@ -12,11 +12,11 @@ domain = "domain"
 
 # array of dc names
 #dca = ["prd"]
-dca = ["prd","dev"]
-#dca = ["prd","stb","dev"]
+#dca = ["prd","dev"]
+dca = ["prd","stb","dev"]
 
 # define number of nodes
-num_APPLICATION       = 0
+num_APPLICATION       = 1
 num_LEAF_INSTANCES    = 1
 num_DB_INSTANCES      = 2
 
@@ -174,7 +174,7 @@ cat > /etc/resolv.conf <<EOF
 options attempts: 2
 options timeout: 1
 nameserver 127.0.0.1
-nameserver 192.168.#{78+dci}.244
+#nameserver 192.168.#{78+dci}.244
 #nameserver 192.168.#{78+dci}.51
 #nameserver 192.168.#{78+dci}.52
 nameserver 10.0.2.3
@@ -236,7 +236,9 @@ SCRIPT
           end
         end
       end
-      config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' priv=#{100+dci} lan=#{78+dci} prefix=#{prefix} dcprefix=#{dcprefix} domain=#{domain} bash /media/scripts/dnsmasq.sh"
+      #puts nodes.keys[0]
+      #config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' priv=#{100+dci} lan=#{78+dci} prefix=#{prefix} dcprefix=#{dcprefix} domain=#{domain} bash /media/scripts/dnsmasq.sh"
+      config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' prefix=#{prefix} first=#{nodes.keys[0]} domain=#{domain} bash /media/scripts/dnsmasq.sh"
       if vm_name == "#{dcprefix}n1" 
         if ENV['setup']
           config.vm.provision :shell, :inline => "scan=#{dcprefix}-scan.#{domain} gns=#{dcprefix}.#{domain} gnsvip=#{dcprefix}-cluster-gns.#{domain} dc=#{dc} cluster_type=#{cluster_type} GIVER=#{ENV['giver']} DBVER=#{ENV['dbver']} bash /media/scripts/run_ansible_playbook.sh"

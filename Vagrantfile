@@ -7,7 +7,14 @@ VAGRANTFILE_API_VERSION = "2"
 #### BEGIN CUSTOMIZATION ####
 #############################
 
+#versions can be set by variables
+#or here
+ENV['giver']||="12.1.0.2"
+ENV['dbver']||="12.1.0.2"
+
 #domain to be used in all nodes
+#domain = "current"
+#domain = "future"
 domain = "domain"
 
 # array of dc names
@@ -35,6 +42,7 @@ memory_LEAF_INSTANCES = 3300
 memory_DB_INSTANCES   = 5500
          
 #size of shared disk in GB
+#disk are data x2 , fra x1
 size_shared_disk      = 50
 
 #############################
@@ -78,7 +86,7 @@ end
 
 ## Prefix
 ## This lead to ansible role of the same name
-## not change
+## don't change
 
 prefix = "vbox-rac"
 
@@ -138,8 +146,10 @@ give_info ||=true
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.ssh.insert_key = false
-  #config.vm.box = "kikitux/oracle6-racattack"
-  config.vm.box = "ol6"
+  #config.vm.box = "alvaro/vbox-rac"
+  #config.vm.box = "kikitux/vbox-rac"
+  config.vm.box = "vbox-rac"
+  config.vm.box_url = "packer/kikitux/packer-oraclelinux/ol6/vbox-rac.box"
 
   if File.directory?("ansible")
     # our shared folder for ansible roles
@@ -216,7 +226,7 @@ SCRIPT
         vb.customize ["modifyvm", :id, "--memory", memory_LEAF_INSTANCES] if vm_name.start_with?("#{dcprefix}l")
         vb.customize ["modifyvm", :id, "--memory", memory_DB_INSTANCES]   if vm_name.start_with?("#{dcprefix}n")
         vb.customize ["modifyvm", :id, "--cpus", num_CORE]
-        vb.customize ["modifyvm", :id, "--groups", "/#{prefix}"]
+        vb.customize ["modifyvm", :id, "--groups", "/#{prefix}.#{domain}"]
 
         if vm_name.start_with?("#{dcprefix}n")
           #first shared disk port

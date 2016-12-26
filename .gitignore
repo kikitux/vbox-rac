@@ -1,4 +1,4 @@
 .vagrant
-ansible/inventory.prd
+ansible/inventory.*
 hosts.*
 *.vdi

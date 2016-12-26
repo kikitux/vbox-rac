@@ -11,8 +11,8 @@ prefix = "vbox-rac"
 domain = "domain"
 
 # array of dc names
-dca = ["prd"]
-#dca = ["prd","dev"]
+#dca = ["prd"]
+dca = ["prd","dev"]
 #dca = ["prd","stb","dev"]
 
 # define number of nodes

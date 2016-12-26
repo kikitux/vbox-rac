@@ -94,6 +94,9 @@ for dc in ${dca}; do
 192.168.${lan}.97 ${dcprefix}a7.${domain} ${dcprefix}a7
 192.168.${lan}.98 ${dcprefix}a8.${domain} ${dcprefix}a8
 192.168.${lan}.99 ${dcprefix}a9.${domain} ${dcprefix}a9
+192.168.${lan}.101 ${dcprefix}-app1.${domain} ${dcprefix}-app1
+192.168.${lan}.102 ${dcprefix}-app2.${domain} ${dcprefix}-app2
+192.168.${lan}.103 ${dcprefix}-app3.${domain} ${dcprefix}-app3
 192.168.${lan}.244 ${dcprefix}-cluster-gns.${domain} ${dcprefix}-cluster-gns
 192.168.${lan}.251 ${dcprefix}-scan.${domain} ${dcprefix}-scan
 192.168.${lan}.252 ${dcprefix}-scan.${domain} ${dcprefix}-scan
@@ -104,4 +107,4 @@ EOF
 done
 
 chkconfig dnsmasq on
-service dnsmasq restart
+service dnsmasq status && service dnsmasq reload || dnsmasq start

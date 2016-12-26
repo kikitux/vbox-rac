@@ -20,8 +20,6 @@ ENV['giver']||="12.1.0.2"
 ENV['dbver']||="12.1.0.2"
 
 #domain to be used in all nodes
-#domain = "current"
-#domain = "future"
 domain = "domain"
 
 # array of dc names
@@ -60,6 +58,9 @@ size_shared_disk      = 50
 ENV['giver']||="12.1.0.2"
 ENV['dbver']||="12.1.0.2"
 dca||= ["prd"]
+
+domain ||= File.basename(Dir.getwd).split(".")[1]
+domain ||= "domain"
 
 #this will give us version in format of 12102
 giver_i = ENV['giver'].gsub('.','').to_i
@@ -219,6 +220,7 @@ SCRIPT
       else
         #run some scripts
         config.vm.provision :shell, :inline => $etc_hosts_script
+        config.vm.provision :shell, :path => "scripts/global.sh", :env => { :kind => kind }
         config.vm.provision :shell, :inline => "echo 'master_node: false' > /media/ansible/oravirt/ansible-oracle/host_vars/#{vm_name}" unless vm_name == "#{dcprefix}n1" 
         config.vm.provision :shell, :inline => "echo 'master_node: true' > /media/ansible/oravirt/ansible-oracle/host_vars/#{vm_name}" if vm_name == "#{dcprefix}n1" 
       end
@@ -258,10 +260,12 @@ SCRIPT
           end
         end
       end
-      config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' prefix=#{prefix} first=#{nodes.keys[0]} domain=#{domain} bash /media/scripts/dnsmasq.sh"
-      if vm_name == "#{dcprefix}n1" 
+      config.vm.provision :shell, :inline => "bash /media/scripts/dnsmasq.sh",
+        :env => { :dca => dca.join(" "), :prefix=>prefix, :first=>nodes.keys[0], :domain=>domain }
+      if vm_name == "#{dcprefix}n1"
         if ENV['setup']
-          config.vm.provision :shell, :inline => "scan=#{dcprefix}-scan.#{domain} gns=#{dcprefix}.#{domain} gnsvip=#{dcprefix}-cluster-gns.#{domain} dc=#{dc} cluster_type=#{cluster_type} GIVER=#{ENV['giver']} DBVER=#{ENV['dbver']} bash /media/scripts/run_ansible_playbook.sh"
+          config.vm.provision :shell, :inline => "bash /media/scripts/run_ansible_playbook.sh",
+            :env => { :prefix=>prefix, :domain=>domain, :dc=>dc, :cluster_type=>cluster_type, :GIVER=>ENV['giver'], :DBVER=>ENV['dbver']}
         end
       end
     end

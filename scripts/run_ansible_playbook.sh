@@ -1,5 +1,10 @@
 #!/bin/bash
 
+
+scan="${dc}${prefix}-scan.${domain}"
+gns="${dc}${prefix}.${domain}"
+gnsvip="${dc}${prefix}-cluster-gns.${domain}"
+
 if [ ! "${GIVER}" ] ; then
   GIVER="12.1.0.2"
 fi

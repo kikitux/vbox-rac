@@ -2,7 +2,14 @@
 # vi: set ft=ruby :
 
 VAGRANTFILE_API_VERSION = "2"
-
+#############################
+## 20161226
+## Alvaro Miranda
+## http://kikitux.net
+## alvaro at kikitux.net
+## Mikael Sandström
+## http://oravirt.wordpress.com
+## oravirt at gmail.com
 #############################
 #### BEGIN CUSTOMIZATION ####
 #############################
@@ -19,8 +26,8 @@ domain = "domain"
 
 # array of dc names
 #dca = ["prd"]
-#dca = ["prd","dev"]
-dca = ["prd","stb","dev"]
+dca = ["prd","dev"]
+#dca = ["prd","stb","dev"]
 
 # define number of nodes
 num_APPLICATION       = 1

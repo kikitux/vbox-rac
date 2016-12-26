@@ -96,24 +96,24 @@ nodes = {}
 dca.each.with_index do |dc,dci|
   
   inventory_ansible = File.open("ansible/inventory.#{dc}","w") if ARGV[0]=="up"
-  prefixdc="#{dc}#{prefix}"
+  dcprefix="#{dc}#{prefix}"
   inventory_ansible << "[#{prefix}-application]\n" if ARGV[0]=="up"
   (1..num_APPLICATION).each do |i|
     i=num_APPLICATION+1-i
-    nodes["#{prefixdc}a%01d" % i] = [i,"192.168.#{78+dci}.#{90+i}",nil,"application",dc,dci]
-    inventory_ansible << "#{prefixdc}a#{i} ansible_ssh_user=root ansible_ssh_pass=root\n" if ARGV[0]=="up"
+    nodes["#{dcprefix}a%01d" % i] = [i,"192.168.#{78+dci}.#{90+i}",nil,"application",dc,dci]
+    inventory_ansible << "#{dcprefix}a#{i} ansible_ssh_user=root ansible_ssh_pass=root\n" if ARGV[0]=="up"
   end
   inventory_ansible << "[#{prefix}-leaf]\n" if ARGV[0]=="up"
   (1..num_LEAF_INSTANCES).each do |i|
     i=num_LEAF_INSTANCES+1-i
-    nodes["#{prefixdc}l%01d" % i] = [i,"192.168.#{78+dci}.#{70+i}","172.16.#{100+dci}.#{i+70}","leaf",dc,dci]
-    inventory_ansible << "#{prefixdc}l#{i} ansible_ssh_user=root ansible_ssh_pass=root\n" if ARGV[0]=="up"
+    nodes["#{dcprefix}l%01d" % i] = [i,"192.168.#{78+dci}.#{70+i}","172.16.#{100+dci}.#{i+70}","leaf",dc,dci]
+    inventory_ansible << "#{dcprefix}l#{i} ansible_ssh_user=root ansible_ssh_pass=root\n" if ARGV[0]=="up"
   end
   inventory_ansible << "[#{prefix}-hub]\n" if ARGV[0]=="up"
   (1..num_DB_INSTANCES).each do |i|
     i=num_DB_INSTANCES+1-i
-    nodes["#{prefixdc}n%01d" % i] = [i,"192.168.#{78+dci}.#{50+i}","172.16.#{100+dci}.#{i+50}","hub",dc,dci]
-    inventory_ansible << "#{prefixdc}n#{i} ansible_ssh_user=root ansible_ssh_pass=root\n" if ARGV[0]=="up"
+    nodes["#{dcprefix}n%01d" % i] = [i,"192.168.#{78+dci}.#{50+i}","172.16.#{100+dci}.#{i+50}","hub",dc,dci]
+    inventory_ansible << "#{dcprefix}n#{i} ansible_ssh_user=root ansible_ssh_pass=root\n" if ARGV[0]=="up"
   end
   if ARGV[0]=="up"
     inventory_ansible << "[#{prefix}:children]\n"
@@ -164,7 +164,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     dc     = array[4]
     dci    = array[5]  # dci dcindex
 
-    prefixdc="#{dc}#{prefix}"
+    dcprefix="#{dc}#{prefix}"
 
 $etc_hosts_script = <<SCRIPT
 #!/bin/bash
@@ -178,13 +178,13 @@ nameserver 192.168.#{78+dci}.244
 #nameserver 192.168.#{78+dci}.51
 #nameserver 192.168.#{78+dci}.52
 nameserver 10.0.2.3
-search #{domain} #{prefixdc}.#{domain}
+search #{domain} #{dcprefix}.#{domain}
 EOF
 
 cat > /etc/hosts << EOF
 127.0.0.1      localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1            localhost6 localhost6.localdomain6
-192.168.#{78+dci}.244 #{prefixdc}-cluster-gns.#{domain} #{prefixdc}-cluster-gns
+192.168.#{78+dci}.244 #{dcprefix}-cluster-gns.#{domain} #{dcprefix}-cluster-gns
 EOF
 
 sysctl -w kernel.domainname=#{domain}
@@ -200,8 +200,8 @@ SCRIPT
       else
         #run some scripts
         config.vm.provision :shell, :inline => $etc_hosts_script
-        config.vm.provision :shell, :inline => "echo 'master_node: false' > /media/ansible/oravirt/ansible-oracle/host_vars/#{vm_name}" unless vm_name == "#{prefixdc}n1" 
-        config.vm.provision :shell, :inline => "echo 'master_node: true' > /media/ansible/oravirt/ansible-oracle/host_vars/#{vm_name}" if vm_name == "#{prefixdc}n1" 
+        config.vm.provision :shell, :inline => "echo 'master_node: false' > /media/ansible/oravirt/ansible-oracle/host_vars/#{vm_name}" unless vm_name == "#{dcprefix}n1" 
+        config.vm.provision :shell, :inline => "echo 'master_node: true' > /media/ansible/oravirt/ansible-oracle/host_vars/#{vm_name}" if vm_name == "#{dcprefix}n1" 
       end
 
       config.vm.hostname = "#{vm_name}.#{domain}"
@@ -211,18 +211,18 @@ SCRIPT
         vb.name = vm_name + "." + Time.now.strftime("%y%m%d%H%M")
         vb.customize ["modifyvm", :id, "--paravirtprovider", "kvm" ]
         vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on" ]
-        vb.customize ["modifyvm", :id, "--memory", memory_APPLICATION]    if vm_name.start_with?("#{prefixdc}a")
-        vb.customize ["modifyvm", :id, "--memory", memory_LEAF_INSTANCES] if vm_name.start_with?("#{prefixdc}l")
-        vb.customize ["modifyvm", :id, "--memory", memory_DB_INSTANCES]   if vm_name.start_with?("#{prefixdc}n")
+        vb.customize ["modifyvm", :id, "--memory", memory_APPLICATION]    if vm_name.start_with?("#{dcprefix}a")
+        vb.customize ["modifyvm", :id, "--memory", memory_LEAF_INSTANCES] if vm_name.start_with?("#{dcprefix}l")
+        vb.customize ["modifyvm", :id, "--memory", memory_DB_INSTANCES]   if vm_name.start_with?("#{dcprefix}n")
         vb.customize ["modifyvm", :id, "--cpus", num_CORE]
         vb.customize ["modifyvm", :id, "--groups", "/#{prefix}"]
 
-        if vm_name.start_with?("#{prefixdc}n")
+        if vm_name.start_with?("#{dcprefix}n")
           #first shared disk port
           port=2
           #iterate over shared disk
           (1..count_shared_disk).each do |disk|
-            file_to_dbdisk = "#{prefixdc}-shared-disk"
+            file_to_dbdisk = "#{dcprefix}-shared-disk"
             if !File.exist?("#{file_to_dbdisk}#{disk}.vdi") and num_DB_INSTANCES==i
               unless give_info==false
                 puts "on first boot shared disks will be created, this will take some time"
@@ -236,10 +236,10 @@ SCRIPT
           end
         end
       end
-      config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' priv=#{100+dci} lan=#{78+dci} prefix=#{prefix} prefixdc=#{prefixdc} domain=#{domain} bash /media/scripts/dnsmasq.sh"
-      if vm_name == "#{prefixdc}n1" 
+      config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' priv=#{100+dci} lan=#{78+dci} prefix=#{prefix} dcprefix=#{dcprefix} domain=#{domain} bash /media/scripts/dnsmasq.sh"
+      if vm_name == "#{dcprefix}n1" 
         if ENV['setup']
-          config.vm.provision :shell, :inline => "scan=#{prefixdc}-scan.#{domain} gns=#{prefixdc}.#{domain} gnsvip=#{prefixdc}-cluster-gns.#{domain} dc=#{dc} cluster_type=#{cluster_type} GIVER=#{ENV['giver']} DBVER=#{ENV['dbver']} bash /media/scripts/run_ansible_playbook.sh"
+          config.vm.provision :shell, :inline => "scan=#{dcprefix}-scan.#{domain} gns=#{dcprefix}.#{domain} gnsvip=#{dcprefix}-cluster-gns.#{domain} dc=#{dc} cluster_type=#{cluster_type} GIVER=#{ENV['giver']} DBVER=#{ENV['dbver']} bash /media/scripts/run_ansible_playbook.sh"
         end
       end
     end

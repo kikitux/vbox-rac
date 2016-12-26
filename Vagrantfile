@@ -7,7 +7,7 @@ VAGRANTFILE_API_VERSION = "2"
 #### BEGIN CUSTOMIZATION ####
 #############################
 
-prefix = "vbox-rac"
+#domain to be used in all nodes
 domain = "domain"
 
 # array of dc names
@@ -35,11 +35,8 @@ memory_LEAF_INSTANCES = 3300
 memory_DB_INSTANCES   = 5500
          
 #size of shared disk in GB
-size_shared_disk      = 15
+size_shared_disk      = 50
 
-#number of shared disks
-count_shared_disk     = 6
- 
 #############################
 ##### END CUSTOMIZATION #####
 #############################
@@ -79,6 +76,12 @@ if giver_i < 12101
   num_LEAF_INSTANCES = 0
 end
 
+## Prefix
+## This lead to ansible role of the same name
+## not change
+
+prefix = "vbox-rac"
+
 ## IMPORTANT
 ## vagrant works top to bottom.
 ## We reverse the oder, so higher node goes first
@@ -87,6 +90,7 @@ end
 ## Create hash table of all nodes
 ## key -> [value[0],value[1],value[2],value[3],value[3]]
 ## node -> [i,lanip,privip,kind,dc]
+
 
 ## iterate over nodes - begin
 ## create nodes hash
@@ -174,9 +178,6 @@ cat > /etc/resolv.conf <<EOF
 options attempts: 2
 options timeout: 1
 nameserver 127.0.0.1
-#nameserver 192.168.#{78+dci}.244
-#nameserver 192.168.#{78+dci}.51
-#nameserver 192.168.#{78+dci}.52
 nameserver 10.0.2.3
 search #{domain} #{dcprefix}.#{domain}
 EOF
@@ -221,14 +222,17 @@ SCRIPT
           #first shared disk port
           port=2
           #iterate over shared disk
-          (1..count_shared_disk).each do |disk|
+          (1..6).each do |disk|
             file_to_dbdisk = "#{dcprefix}-shared-disk"
             if !File.exist?("#{file_to_dbdisk}#{disk}.vdi") and num_DB_INSTANCES==i
               unless give_info==false
                 puts "on first boot shared disks will be created, this will take some time"
                 give_info=false
               end
-              vb.customize ['createhd', '--filename', "#{file_to_dbdisk}#{disk}.vdi", '--size', (size_shared_disk * 1024).floor, '--variant', 'fixed']
+              # first disks 5gb for crs x3
+              # late  disks for data x2 and fra x1
+              vb.customize ['createhd', '--filename', "#{file_to_dbdisk}#{disk}.vdi", '--size', (5 * 1024).floor, '--variant', 'fixed'] unless disk > 3
+              vb.customize ['createhd', '--filename', "#{file_to_dbdisk}#{disk}.vdi", '--size', (size_shared_disk * 1024).floor, '--variant', 'fixed'] if disk > 3
               vb.customize ['modifyhd', "#{file_to_dbdisk}#{disk}.vdi", '--type', 'shareable']
             end
             vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', port, '--device', 0, '--type', 'hdd', '--medium', "#{file_to_dbdisk}#{disk}.vdi"]
@@ -236,8 +240,6 @@ SCRIPT
           end
         end
       end
-      #puts nodes.keys[0]
-      #config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' priv=#{100+dci} lan=#{78+dci} prefix=#{prefix} dcprefix=#{dcprefix} domain=#{domain} bash /media/scripts/dnsmasq.sh"
       config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' prefix=#{prefix} first=#{nodes.keys[0]} domain=#{domain} bash /media/scripts/dnsmasq.sh"
       if vm_name == "#{dcprefix}n1" 
         if ENV['setup']
@@ -246,13 +248,4 @@ SCRIPT
       end
     end
   end
-
-#      if not ENV['setup'] == "clean"
-#        if vm_name == "#{prefix}n2" 
-#          puts vm_name + " dns server role is slave"
-#          config.vm.provision :shell, :inline => "echo sh /media/stagefiles/named_slave.sh"
-#        end
-#        end
-#      end
-
 end

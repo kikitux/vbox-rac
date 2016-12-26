@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-echo ${domain} ${lan} ${priv} ${prefixdc}
+echo ${domain} ${lan} ${priv} ${prefixdc} ${dca} ${prefix}
+exit
+
 
 p="dnsmasq"
 rpm -q ${p} &>/dev/null || {
@@ -14,15 +16,12 @@ fi
 
 for param in "addn-hosts=/vagrant/hosts.${domain}" "server=/${prefixdc}.${domain}/192.168.${lan}.244" "interface=lo" "bind-interfaces" "listen-address=127.0.0.1"
 do
-  grep "${param}" /etc/dnsmasq.conf || {
+  grep "^${param}" /etc/dnsmasq.conf || {
     echo "${param}" | tee -a /etc/dnsmasq.conf
   }
 done
 
 cat > /vagrant/hosts.${domain} <<EOF
-192.168.${lan}.251 ${prefixdc}-scan.${domain} ${prefixdc}-scan
-192.168.${lan}.252 ${prefixdc}-scan.${domain} ${prefixdc}-scan
-192.168.${lan}.253 ${prefixdc}-scan.${domain} ${prefixdc}-scan
 192.168.${lan}.51 ${prefixdc}n1.${domain} ${prefixdc}n1
 172.16.${priv}.51 ${prefixdc}n1-priv.${domain} ${prefixdc}n1-priv
 192.168.${lan}.61 ${prefixdc}n1-vip.${domain} ${prefixdc}n1-vip
@@ -88,6 +87,14 @@ cat > /vagrant/hosts.${domain} <<EOF
 192.168.${lan}.99 ${prefixdc}a9.${domain} ${prefixdc}a9
 192.168.${lan}.244 ${prefixdc}-cluster-gns.${domain} ${prefixdc}-cluster-gns
 EOF
+
+dci=78
+for dc in ${dca}; do
+  echo 192.168.${dci}.251 ${prefix}${dc}-scan.${domain} ${prefix}${dc}-scan >> /vagrant/hosts.${domain}
+  echo 192.168.${dci}.252 ${prefix}${dc}-scan.${domain} ${prefix}${dc}-scan >> /vagrant/hosts.${domain}
+  echo 192.168.${dci}.253 ${prefix}${dc}-scan.${domain} ${prefix}${dc}-scan >> /vagrant/hosts.${domain}
+  let dci++
+done
 
 chkconfig dnsmasq on
 service dnsmasq restart

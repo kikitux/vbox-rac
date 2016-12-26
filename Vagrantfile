@@ -11,9 +11,9 @@ prefix = "vbox-rac"
 domain = "domain"
 
 # array of dc names
-dc = ["prd"]
-#dc = ["prd","dev"]
-#dc = ["prd","stb","dev"]
+dca = ["prd"]
+#dca = ["prd","dev"]
+#dca = ["prd","stb","dev"]
 
 # define number of nodes
 num_APPLICATION       = 0
@@ -93,7 +93,8 @@ end
 nodes = {}
 
 ## populate inventory for ansible
-dc.each.with_index do |dc,dci|
+dca.each.with_index do |dc,dci|
+  
   inventory_ansible = File.open("ansible/inventory.#{dc}","w") if ARGV[0]=="up"
   prefixdc="#{dc}#{prefix}"
   inventory_ansible << "[#{prefix}-application]\n" if ARGV[0]=="up"
@@ -127,8 +128,6 @@ dc.each.with_index do |dc,dci|
 end
 ## iterate over nodes - end
 
-
-
 #variable used to provide information only once
 give_info ||=true
 
@@ -156,13 +155,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # Lets iterate over the nodes
   nodes.each do |vm_name,array|
 
+
     # add type 
     i      = array[0]
     lanip  = array[1]
     privip = array[2] unless array[2].nil?
     kind   = array[3]
     dc     = array[4]
-    dci    = array[5]
+    dci    = array[5]  # dci dcindex
 
     prefixdc="#{dc}#{prefix}"
 
@@ -173,12 +173,12 @@ echo "overwriting /etc/resolv.conf"
 cat > /etc/resolv.conf <<EOF
 options attempts: 2
 options timeout: 1
-nameserver 192.168.#{78+dci}.244
 nameserver 127.0.0.1
+nameserver 192.168.#{78+dci}.244
 #nameserver 192.168.#{78+dci}.51
 #nameserver 192.168.#{78+dci}.52
 nameserver 10.0.2.3
-search #{prefixdc}.#{domain} #{domain}
+search #{domain} #{prefixdc}.#{domain}
 EOF
 
 cat > /etc/hosts << EOF
@@ -236,12 +236,10 @@ SCRIPT
           end
         end
       end
+      config.vm.provision :shell, :inline => "dca='#{dca.join(" ")}' priv=#{100+dci} lan=#{78+dci} prefix=#{prefix} prefixdc=#{prefixdc} domain=#{domain} bash /media/scripts/dnsmasq.sh"
       if vm_name == "#{prefixdc}n1" 
-        puts vm_name + " dns server role is master"
-        config.vm.provision :shell, :inline => "priv=#{100+dci} lan=#{78+dci} prefixdc=#{prefixdc} DC=#{dc} domain=#{domain} bash /media/scripts/dnsmasq.sh"
         if ENV['setup']
-
-          config.vm.provision :shell, :inline => "scan=#{prefixdc}-scan.#{domain} gns=#{prefixdc}.#{domain} gnsvip=#{prefixdc}-cluster-gns.#{domain} DC=#{dc} cluster_type=#{cluster_type} GIVER=#{ENV['giver']} DBVER=#{ENV['dbver']} bash /media/scripts/run_ansible_playbook.sh"
+          config.vm.provision :shell, :inline => "scan=#{prefixdc}-scan.#{domain} gns=#{prefixdc}.#{domain} gnsvip=#{prefixdc}-cluster-gns.#{domain} dc=#{dc} cluster_type=#{cluster_type} GIVER=#{ENV['giver']} DBVER=#{ENV['dbver']} bash /media/scripts/run_ansible_playbook.sh"
         end
       end
     end

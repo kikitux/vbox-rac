@@ -107,4 +107,4 @@ EOF
 done
 
 chkconfig dnsmasq on
-service dnsmasq status && service dnsmasq reload || dnsmasq start
+service dnsmasq status &>/dev/null && service dnsmasq reload || dnsmasq start

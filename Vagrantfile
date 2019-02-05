@@ -226,8 +226,8 @@ SCRIPT
       end
 
       config.vm.hostname = "#{vm_name}.#{domain}"
-      config.vm.network :private_network, ip: lanip
-      config.vm.network :private_network, ip: privip unless privip.nil?
+      config.vm.network :private_network, ip: lanip, netmask:"255.255.0.0"
+      config.vm.network :private_network, ip: privip, netmask:"255.255.0.0" unless privip.nil?
       config.vm.provider :virtualbox do |vb|
         vb.name = vm_name + "." + Time.now.strftime("%y%m%d%H%M")
         vb.customize ["modifyvm", :id, "--paravirtprovider", "kvm" ]
